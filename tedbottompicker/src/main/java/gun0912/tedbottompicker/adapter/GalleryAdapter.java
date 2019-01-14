@@ -152,11 +152,10 @@ public class GalleryAdapter extends RecyclerView.Adapter<GalleryAdapter.GalleryV
 
         if (pickerTile.isCameraTile()) {
             holder.iv_thumbnail.setBackgroundResource(builder.cameraTileBackgroundResId);
-            holder.iv_thumbnail.setImageDrawable(builder.cameraTileDrawable);
+            holder.iv_thumbnail.setImageResource(builder.cameraTileResId);
         } else if (pickerTile.isGalleryTile()) {
             holder.iv_thumbnail.setBackgroundResource(builder.galleryTileBackgroundResId);
-            holder.iv_thumbnail.setImageDrawable(builder.galleryTileDrawable);
-
+            holder.iv_thumbnail.setImageResource(builder.galleryTileResId);
         } else {
             Uri uri = pickerTile.getImageUri();
             if (builder.imageProvider == null) {
@@ -179,18 +178,9 @@ public class GalleryAdapter extends RecyclerView.Adapter<GalleryAdapter.GalleryV
 
 
         if (holder.root instanceof FrameLayout) {
-
-            Drawable foregroundDrawable;
-
-            if (builder.selectedForegroundDrawable != null) {
-                foregroundDrawable = builder.selectedForegroundDrawable;
-            } else {
-                foregroundDrawable = ContextCompat.getDrawable(context, R.drawable.gallery_photo_selected);
-            }
-
-            ((FrameLayout) holder.root).setForeground(isSelected ? foregroundDrawable : null);
+            Drawable foregroundDrawable = ContextCompat.getDrawable(context, builder.selectedForegroundResId);
+            holder.root.setForeground(isSelected ? foregroundDrawable : null);
         }
-
 
         if (onItemClickListener != null) {
             holder.itemView.setOnClickListener(new View.OnClickListener() {

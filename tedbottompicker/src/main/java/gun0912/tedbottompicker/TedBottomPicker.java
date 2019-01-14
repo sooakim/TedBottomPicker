@@ -7,12 +7,15 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Parcel;
+import android.os.Parcelable;
 import android.provider.MediaStore;
 import android.support.annotation.ColorRes;
 import android.support.annotation.DimenRes;
@@ -63,9 +66,10 @@ import gun0912.tedbottompicker.util.RealPathUtil;
 public class TedBottomPicker extends BottomSheetDialogFragment {
 
     public static final String TAG = "TedBottomPicker";
+    static final String EXTRA_BUILDER = "builder";
     static final String EXTRA_CAMERA_IMAGE_URI = "camera_image_uri";
     static final String EXTRA_CAMERA_SELECTED_IMAGE_URI = "camera_selected_image_uri";
-    public static Builder builder;
+    private Builder builder;
     GalleryAdapter imageGalleryAdapter;
     View view_title_container;
     TextView tv_title;
@@ -99,6 +103,10 @@ public class TedBottomPicker extends BottomSheetDialogFragment {
             Log.d(TAG, "onSlide() slideOffset: " + slideOffset);
         }
     };
+
+    public void setBuilder(Builder builder){
+        this.builder = builder;
+    }
     
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -110,17 +118,14 @@ public class TedBottomPicker extends BottomSheetDialogFragment {
     }
 
     private void setupSavedInstanceState(Bundle savedInstanceState) {
-
-
         if (savedInstanceState == null) {
             cameraImageUri = builder.selectedUri;
             tempUriList = builder.selectedUriList;
         } else {
             cameraImageUri = savedInstanceState.getParcelable(EXTRA_CAMERA_IMAGE_URI);
             tempUriList = savedInstanceState.getParcelableArrayList(EXTRA_CAMERA_SELECTED_IMAGE_URI);
+            builder = savedInstanceState.getParcelable(EXTRA_BUILDER);
         }
-
-
     }
 
 
@@ -128,8 +133,8 @@ public class TedBottomPicker extends BottomSheetDialogFragment {
     public void onSaveInstanceState(Bundle outState) {
         outState.putParcelable(EXTRA_CAMERA_IMAGE_URI, cameraImageUri);
         outState.putParcelableArrayList(EXTRA_CAMERA_SELECTED_IMAGE_URI, selectedUriList);
+        outState.putParcelable(EXTRA_BUILDER, builder);
         super.onSaveInstanceState(outState);
-
     }
 
     public void show(FragmentManager fragmentManager) {
@@ -137,18 +142,6 @@ public class TedBottomPicker extends BottomSheetDialogFragment {
         FragmentTransaction ft = fragmentManager.beginTransaction();
         ft.add(this, getTag());
         ft.commitAllowingStateLoss();
-    }
-
-    @Override
-    public Dialog onCreateDialog(Bundle savedInstanceState) {
-        return super.onCreateDialog(savedInstanceState);
-    }
-
-    @Override
-    public void onViewCreated(View contentView, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(contentView, savedInstanceState);
-
-
     }
 
     @Override
@@ -357,9 +350,7 @@ public class TedBottomPicker extends BottomSheetDialogFragment {
         }
 
 
-        if (builder.deSelectIconDrawable != null) {
-            iv_close.setImageDrawable(builder.deSelectIconDrawable);
-        }
+        iv_close.setImageResource(builder.deSelectIconResId);
 
         iv_close.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -636,15 +627,15 @@ public class TedBottomPicker extends BottomSheetDialogFragment {
         void onProvideImage(ImageView imageView, Uri imageUri);
     }
 
-    public static class Builder {
-
+    public static class Builder implements Parcelable {
         public Context context;
-        public int previewMaxCount = 25;
-        public Drawable cameraTileDrawable;
-        public Drawable galleryTileDrawable;
 
-        public Drawable deSelectIconDrawable;
-        public Drawable selectedForegroundDrawable;
+        public int previewMaxCount = 25;
+        public int cameraTileResId;
+        public int galleryTileResId;
+
+        public int deSelectIconResId;
+        public int selectedForegroundResId = R.drawable.gallery_photo_selected;
 
         public int spacing = 1;
         public boolean includeEdgeSpacing = false;
@@ -665,15 +656,42 @@ public class TedBottomPicker extends BottomSheetDialogFragment {
         public int selectMaxCount = Integer.MAX_VALUE;
         public int selectMinCount = 0;
 
-
         public String completeButtonText;
         public String emptySelectionText;
         public String selectMaxCountErrorText;
         public String selectMinCountErrorText;
-        public @MediaType
-        int mediaType = MediaType.IMAGE;
+        public @MediaType int mediaType = MediaType.IMAGE;
         ArrayList<Uri> selectedUriList;
         Uri selectedUri;
+
+        public Builder(Parcel parcel){
+            this.readFromParcel(parcel);
+        }
+
+        private void readFromParcel(Parcel parcel){
+            previewMaxCount = parcel.readInt();
+            cameraTileResId = parcel.readInt();
+            galleryTileResId = parcel.readInt();
+            deSelectIconResId = parcel.readInt();
+            selectedForegroundResId = parcel.readInt();
+            spacing = parcel.readInt();
+            includeEdgeSpacing = (parcel.readInt() == 1);
+            showCamera = (parcel.readInt() == 1);
+            showGallery = (parcel.readInt() == 1);
+            peekHeight = parcel.readInt();
+            cameraTileBackgroundResId = parcel.readInt();
+            galleryTileBackgroundResId = parcel.readInt();
+            title = parcel.readString();
+            showTitle = (parcel.readInt() == 1);
+            titleBackgroundResId = parcel.readInt();
+            selectMaxCount = parcel.readInt();
+            selectMinCount = parcel.readInt();
+            completeButtonText = parcel.readString();
+            emptySelectionText = parcel.readString();
+            selectMaxCountErrorText = parcel.readString();
+            selectMinCountErrorText = parcel.readString();
+            mediaType = parcel.readInt();
+        }
 
         public Builder(@NonNull Context context) {
 
@@ -685,12 +703,12 @@ public class TedBottomPicker extends BottomSheetDialogFragment {
         }
 
         public Builder setCameraTile(@DrawableRes int cameraTileResId) {
-            setCameraTile(ContextCompat.getDrawable(context, cameraTileResId));
+            this.cameraTileResId = cameraTileResId;
             return this;
         }
 
         public Builder setGalleryTile(@DrawableRes int galleryTileResId) {
-            setGalleryTile(ContextCompat.getDrawable(context, galleryTileResId));
+            this.galleryTileResId = galleryTileResId;
             return this;
         }
 
@@ -699,33 +717,13 @@ public class TedBottomPicker extends BottomSheetDialogFragment {
             return this;
         }
 
-        public Builder setCameraTile(Drawable cameraTileDrawable) {
-            this.cameraTileDrawable = cameraTileDrawable;
-            return this;
-        }
-
-        public Builder setGalleryTile(Drawable galleryTileDrawable) {
-            this.galleryTileDrawable = galleryTileDrawable;
-            return this;
-        }
-
         public Builder setDeSelectIcon(@DrawableRes int deSelectIconResId) {
-            setDeSelectIcon(ContextCompat.getDrawable(context, deSelectIconResId));
-            return this;
-        }
-
-        public Builder setDeSelectIcon(Drawable deSelectIconDrawable) {
-            this.deSelectIconDrawable = deSelectIconDrawable;
+            this.deSelectIconResId = deSelectIconResId;
             return this;
         }
 
         public Builder setSelectedForeground(@DrawableRes int selectedForegroundResId) {
-            setSelectedForeground(ContextCompat.getDrawable(context, selectedForegroundResId));
-            return this;
-        }
-
-        public Builder setSelectedForeground(Drawable selectedForegroundDrawable) {
-            this.selectedForegroundDrawable = selectedForegroundDrawable;
+            this.selectedForegroundResId = selectedForegroundResId;
             return this;
         }
 
@@ -891,9 +889,50 @@ public class TedBottomPicker extends BottomSheetDialogFragment {
 
             TedBottomPicker customBottomSheetDialogFragment = new TedBottomPicker();
 
-            customBottomSheetDialogFragment.builder = this;
+            customBottomSheetDialogFragment.setBuilder(this);
             return customBottomSheetDialogFragment;
         }
+
+        @Override
+        public int describeContents() {
+            return 0;
+        }
+
+        @Override
+        public void writeToParcel(Parcel parcel, int flags) {
+            parcel.writeInt(previewMaxCount);
+            parcel.writeInt(cameraTileResId);
+            parcel.writeInt(galleryTileResId);
+            parcel.writeInt(deSelectIconResId);
+            parcel.writeInt(selectedForegroundResId);
+            parcel.writeInt(spacing);
+            parcel.writeInt(includeEdgeSpacing ? 1 : 0);
+            parcel.writeInt(showCamera ? 1 : 0);
+            parcel.writeInt(showGallery ? 1 : 0);
+            parcel.writeInt(peekHeight);
+            parcel.writeInt(cameraTileBackgroundResId);
+            parcel.writeInt(galleryTileBackgroundResId);
+            parcel.writeString(title);
+            parcel.writeInt(showTitle ? 1 : 0);
+            parcel.writeInt(titleBackgroundResId);
+            parcel.writeInt(selectMaxCount);
+            parcel.writeInt(selectMinCount);
+            parcel.writeString(completeButtonText);
+            parcel.writeString(emptySelectionText);
+            parcel.writeString(selectMaxCountErrorText);
+            parcel.writeString(selectMinCountErrorText);
+            parcel.writeInt(mediaType);
+        }
+
+        public static final Parcelable.Creator CREATOR = new Parcelable.Creator() {
+            public Builder createFromParcel(Parcel in) {
+                return new Builder(in);
+            }
+
+            public Builder[] newArray(int size) {
+                return new Builder[size];
+            }
+        };
 
         @Retention(RetentionPolicy.SOURCE)
         @IntDef({MediaType.IMAGE, MediaType.VIDEO})
@@ -901,9 +940,5 @@ public class TedBottomPicker extends BottomSheetDialogFragment {
             int IMAGE = 1;
             int VIDEO = 2;
         }
-
-
     }
-
-
 }
